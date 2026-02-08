@@ -34,7 +34,6 @@ import { GetClosureArgs } from '@/core/utils/types';
 import { CoreIframeComponent } from '@components/iframe/iframe';
 import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreLang } from '@services/lang';
-import { CoreEvents } from '@static/events';
 import { CoreBrowser } from '@static/browser';
 import { CoreText } from '@static/text';
 
@@ -79,7 +78,7 @@ export class TestingBehatRuntimeService {
     }
 
     /**
-     * Init behat functions and set options like skipping onboarding.
+     * Init behat functions and set options like site finder settings.
      *
      * @param options Options to set on the app.
      */
@@ -118,7 +117,7 @@ export class TestingBehatRuntimeService {
         try {
             if (patchDefault) {
                 // Set the cookie so it's maintained between reloads.
-                let cookie = CoreBrowser.getDevelopmentSetting('Config');
+                const cookie = CoreBrowser.getDevelopmentSetting('Config');
                 // Override existing config.
                 if (cookie) {
                     const currentConfig = CoreText.parseJSON(cookie, {});
@@ -169,7 +168,7 @@ export class TestingBehatRuntimeService {
      */
     async runInZone(
         operation: () => unknown,
-        blocking: boolean = false,
+        blocking = false,
         locatorToFind?: TestingBehatElementLocator,
     ): Promise<string> {
         const blockKey = blocking && TestingBehatBlocking.block();
@@ -819,6 +818,8 @@ export class TestingBehatRuntimeService {
     /**
      * Logs information from this Behat runtime JavaScript, including the time and the 'BEHAT'
      * keyword so we can easily filter for it if needed.
+     *
+     * @param {...unknown[]} args Arguments to log.
      */
     log(...args: unknown[]): void {
         const now = new Date();
@@ -912,7 +913,11 @@ export class TestingBehatRuntimeService {
             const swiperContainer = this.getElement<{ swiper: Swiper }>('swiper-container', locator);
 
             if (swiperContainer) {
-                direction === 'left' ? swiperContainer.swiper.slideNext() : swiperContainer.swiper.slidePrev();
+                if (direction === 'left') {
+                    swiperContainer.swiper.slideNext();
+                } else {
+                    swiperContainer.swiper.slidePrev();
+                }
 
                 return 'OK';
             }
@@ -928,7 +933,11 @@ export class TestingBehatRuntimeService {
             return 'ERROR: Element to swipe not found.';
         }
 
-        direction === 'left' ? ionContent.swipeNavigation.swipeLeft() : ionContent.swipeNavigation.swipeRight();
+        if (direction === 'left') {
+            ionContent.swipeNavigation.swipeLeft();
+        } else {
+            ionContent.swipeNavigation.swipeRight();
+        }
 
         return 'OK';
     }
@@ -945,8 +954,6 @@ export class TestingBehatRuntimeService {
 
         const sites = await CoreSites.getSitesInstances();
         await CorePromiseUtils.ignoreErrors(Promise.all(sites.map((site) => site.invalidateWsCache())));
-
-        CoreEvents.trigger(CoreEvents.LANGUAGE_CHANGED, language);
 
         CoreNavigator.navigate('/reload', {
             reset: true,

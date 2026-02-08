@@ -16,7 +16,6 @@ import { Component, OnInit, ElementRef, inject, viewChild } from '@angular/core'
 import { FormBuilder, FormGroup, ValidatorFn, AbstractControl, ValidationErrors } from '@angular/forms';
 
 import { CoreNetwork } from '@services/network';
-import { CoreConfig } from '@services/config';
 import { CoreSites, CoreSiteCheckResponse, CoreLoginSiteInfo, CoreSitesDemoSiteData } from '@services/sites';
 import { CoreUtils } from '@static/utils';
 import {
@@ -39,10 +38,8 @@ import { CoreErrorAccordion } from '@services/error-accordion';
 import { CoreUserSupportConfig } from '@features/user/classes/support/support-config';
 import { CoreUserGuestSupportConfig } from '@features/user/classes/support/guest-support-config';
 import { CoreLoginError } from '@classes/errors/loginerror';
-import { CorePlatform } from '@services/platform';
 import { CoreReferrer } from '@services/referrer';
 import { CoreSitesFactory } from '@services/sites-factory';
-import { ONBOARDING_DONE } from '@features/login/constants';
 import { CoreUnauthenticatedSite } from '@classes/sites/unauthenticated-site';
 import { CoreKeyboard } from '@static/keyboard';
 import { CoreModals } from '@services/overlays/modals';
@@ -71,7 +68,7 @@ export default class CoreLoginSitePage implements OnInit {
     siteForm!: FormGroup;
     fixedSites?: CoreLoginSiteInfoExtended[];
     filteredSites?: CoreLoginSiteInfoExtended[];
-    siteSelector: CoreLoginSiteSelectorListMethod = 'sitefinder';
+    siteSelector = CoreLoginSiteSelectorListMethod.SITE_FINDER;
     showKeyboard = false;
     filter = '';
     sites: CoreLoginSiteInfoExtended[] = [];
@@ -111,17 +108,8 @@ export default class CoreLoginSitePage implements OnInit {
         } else {
             url = await this.consumeInstallReferrerUrl() ?? '';
 
-            const showOnboarding = CoreConstants.CONFIG.enableonboarding && !CorePlatform.isIOS();
-
             if (url) {
                 this.connect(url);
-
-                if (showOnboarding) {
-                    // Don't display onboarding in this case, and don't display it again later.
-                    CoreConfig.set(ONBOARDING_DONE, 1);
-                }
-            } else if (showOnboarding) {
-                this.initOnboarding();
             }
         }
 
@@ -161,7 +149,7 @@ export default class CoreLoginSitePage implements OnInit {
     protected async initSiteSelector(): Promise<string> {
         const availableSites = await CoreLoginHelper.getAvailableSites();
         this.fixedSites = this.extendCoreLoginSiteInfo(<CoreLoginSiteInfoExtended[]> availableSites);
-        this.siteSelector = 'list'; // In case it's not defined
+        this.siteSelector = CoreLoginSiteSelectorListMethod.LIST; // In case it's not defined
 
         // Do not show images if none are set.
         if (!this.fixedSites.some((site) => !!site.imageurl)) {
@@ -194,20 +182,6 @@ export default class CoreLoginSitePage implements OnInit {
         }
 
         return url;
-    }
-
-    /**
-     * Initialize and show onboarding if needed.
-     *
-     * @returns Promise resolved when done.
-     */
-    protected async initOnboarding(): Promise<void> {
-        const onboardingDone = await CoreConfig.get(ONBOARDING_DONE, false);
-
-        if (!onboardingDone) {
-            // Check onboarding.
-            this.showOnboarding();
-        }
     }
 
     /**
@@ -280,19 +254,6 @@ export default class CoreLoginSitePage implements OnInit {
     }
 
     /**
-     * Show an onboarding modal.
-     */
-    async showOnboarding(): Promise<void> {
-        const { CoreLoginSiteOnboardingComponent } =
-            await import('@features/login/components/site-onboarding/site-onboarding');
-
-        await CoreModals.openModal({
-            component: CoreLoginSiteOnboardingComponent,
-            cssClass: 'core-modal-fullscreen',
-        });
-    }
-
-    /**
      * Try to connect to a site.
      *
      * @param url The URL to connect to.
@@ -343,7 +304,7 @@ export default class CoreLoginSitePage implements OnInit {
                 // Attempt guessing the domain if the initial check failed
                 const domain = CoreUrl.guessMoodleDomain(url);
 
-                if (domain && domain != url) {
+                if (domain && domain !== url) {
                     try {
                         checkResult = await CoreSites.checkSite(domain, undefined, 'Site URL page');
                     } catch (secondError) {
@@ -579,7 +540,7 @@ export default class CoreLoginSitePage implements OnInit {
         // Not a custom URL scheme, check if it's a URL scheme to another app.
         const scheme = CoreUrl.getUrlProtocol(text);
 
-        if (scheme && scheme != 'http' && scheme != 'https') {
+        if (scheme && scheme !== 'http' && scheme !== 'https') {
             CoreAlerts.showError(Translate.instant('core.errorurlschemeinvalidscheme', { $a: text }));
 
             return;
