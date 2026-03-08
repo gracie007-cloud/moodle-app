@@ -38,12 +38,34 @@ ion-modal {
     }
 
     &.modal-sheet {
+
         .ion-page {
             --ion-safe-area-top: 0px;
             padding-bottom: var(--ion-safe-area-bottom);
         }
+        &::part(content) {
+            --border-radius: 8px 8px 0px 0px;
+        }
         &::part(handle) {
             background: var(--core-header-buttons-color);
+        }
+
+        &.no-header {
+            &::part(handle) {
+                background: var(--text-color);
+            }
+        }
+
+        &.core-modal-auto-height {
+            --height: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+
+            .content-auto-height {
+                max-height: 80vh;
+                overflow: auto;
+            }
         }
     }
 
@@ -140,16 +162,15 @@ ion-modal {
         }
     }
 
-    &.core-modal-auto-height {
+    &.core-modal-auto-size {
+        --border-radius: var(--mdl-shape-borderRadius-sm);
+        --min-width: auto;
+        --min-height: 300px;
+        --max-width: 384px;
         --height: auto;
         display: flex;
         flex-direction: column;
-        justify-content: flex-end;
-
-        .content-auto-height {
-            max-height: 80vh;
-            overflow: auto;
-        }
+        justify-content: center;
     }
 
     &::part(backdrop) {
